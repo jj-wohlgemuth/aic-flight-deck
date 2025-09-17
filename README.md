@@ -1,5 +1,10 @@
 # Simple Web GUI Drag & Drop App for the AIC API
 
+> **Disclaimer:**  
+> This tool is a **community project**, created and was created privately by me.
+> It is **not an official AI-coustics product**, and **AI-coustics does not maintain or support it**.  
+> Please use it at your own discretion.
+
 This a Python app with a web GUI (Flask) that lets you drag & drop files for upload and processing.
 
 ## User Quickstart
