@@ -1,12 +1,12 @@
 
-name: Build App (macOS)
+name: Build App (Linux)
 on:
   push:
     tags:
       - '*'
 jobs:
-  build-macos:
-    runs-on: macos-latest
+  build-linux:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -28,7 +28,7 @@ jobs:
           pyinstaller run_gui.spec
       - name: Compress artifact
         run: |
-          tar -czvf mac-dist.tar.gz -C dist .
+          tar -czvf linux-dist.tar.gz -C dist .
       - name: Create or update release
         uses: softprops/action-gh-release@v2
         with:
@@ -39,6 +39,6 @@ jobs:
       - name: Upload release asset
         uses: softprops/action-gh-release@v2
         with:
-          files: mac-dist.tar.gz
+          files: linux-dist.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

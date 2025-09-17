@@ -1,9 +1,9 @@
+
 name: Build App (Windows)
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    tags:
+      - '*'
 jobs:
   build-windows:
     runs-on: windows-latest
@@ -26,8 +26,19 @@ jobs:
         run: |
           .venv\Scripts\activate
           pyinstaller run_gui.spec
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: Compress artifact
+        run: |
+          tar -czvf windows-dist.tar.gz -C dist .
+      - name: Create or update release
+        uses: softprops/action-gh-release@v2
         with:
-          name: windows-dist
-          path: dist/
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: windows-dist.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
