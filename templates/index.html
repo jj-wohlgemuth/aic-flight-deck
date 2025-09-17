@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Drag & Drop File Upload</title>
+    <style>
+        #processBtn {
+            display: block;
+            margin: 20px auto 0 auto;
+        }
+        #form-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-top: 40px;
+        }
+        #form-fields {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        #drop-area {
+            border: 2px dashed #f86;
+            border-radius: 20px;
+            width: 300px;
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body>
+    <div id="form-container">
+        <form id="uploadForm">
+            <div id="form-fields">
+                <label for="apiKey">API_KEY:</label>
+                <input type="password" id="apiKey" name="apiKey" value="{{ default_api_key }}"><br><br>
+                <label for="outputFolder">Output Folder:</label>
+                <input type="text" id="outputFolder" name="outputFolder" value="{{ default_download_folder }}"><br><br>
+                <label for="enhancementModel">Enhancement Model:</label>
+                <select id="enhancementModel" name="enhancementModel">
+                    <option value="LARK_V2">LARK_V2</option>
+                    <option value="FINCH">FINCH</option>
+                </select><br><br>
+            </div>
+            <div id="drop-area">
+                <h3>Drag & Drop files here</h3>
+                <input type="file" id="fileElem" multiple style="display:none">
+                <button id="fileSelect" type="button">Select files</button>
+            </div>
+            <div id="selected-files" style="margin-top:10px; text-align:center;"></div>
+            <button id="processBtn" type="button" style="margin-top:20px;">PROCESS</button>
+        </form>
+        <div id="spinner" style="display:none; text-align:center; margin-top:20px;">
+            <div style="display:inline-block; width:40px; height:40px; border:4px solid #ccc; border-top:4px solid #333; border-radius:50%; animation: spin 1s linear infinite;"></div>
+        </div>
+        <div id="status" style="text-align:center; margin-top:10px; font-weight:bold;"></div>
+    </div>
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+    <script>
+        const dropArea = document.getElementById('drop-area');
+        const fileElem = document.getElementById('fileElem');
+        const fileSelect = document.getElementById('fileSelect');
+
+        fileSelect.onclick = () => fileElem.click();
+
+        let selectedFiles = [];
+
+        function updateSelectedFilesTable() {
+            const container = document.getElementById('selected-files');
+            if (selectedFiles.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+            let tableHtml = '<table style="margin:0 auto; border-collapse:collapse;"><tr><th>Selected Files</th></tr>';
+            selectedFiles.forEach(f => {
+                tableHtml += `<tr><td style="border:1px solid #ccc; padding:4px 8px;">${f.name}</td></tr>`;
+            });
+            tableHtml += '</table>';
+            container.innerHTML = tableHtml;
+        }
+
+        dropArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropArea.style.background = '#eee';
+        });
+        dropArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dropArea.style.background = '';
+        });
+        dropArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropArea.style.background = '';
+            selectedFiles = Array.from(e.dataTransfer.files);
+            updateSelectedFilesTable();
+        });
+        fileElem.addEventListener('change', (e) => {
+            selectedFiles = Array.from(e.target.files);
+            updateSelectedFilesTable();
+        });
+
+        document.getElementById('processBtn').onclick = function() {
+            if (selectedFiles.length === 0) {
+                alert('Please select or drop files first.');
+                return;
+            }
+            const spinner = document.getElementById('spinner');
+            const status = document.getElementById('status');
+            spinner.style.display = 'block';
+            status.textContent = 'Uploading, processing and downloading audio...';
+            const formData = new FormData();
+            for (let i = 0; i < selectedFiles.length; i++) {
+                formData.append('files[]', selectedFiles[i]);
+            }
+            // Add form fields
+            formData.append('apiKey', document.getElementById('apiKey').value);
+            formData.append('outputFolder', document.getElementById('outputFolder').value);
+            formData.append('enhancementModel', document.getElementById('enhancementModel').value);
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.files) {
+                    // Format as table
+                    let tableHtml = '<table style="margin:0 auto; border-collapse:collapse;"><tr><th>Processed Files</th></tr>';
+                    data.files.forEach(f => {
+                        tableHtml += `<tr><td style="border:1px solid #ccc; padding:4px 8px;">${f}</td></tr>`;
+                    });
+                    tableHtml += '</table>';
+                    status.innerHTML = tableHtml;
+                } else if (data.failed_files && data.failed_files.length > 0) {
+                    // Format failed files as table
+                    let tableHtml = '<table style="margin:0 auto; border-collapse:collapse;"><tr><th>Failed Files</th></tr>';
+                    data.failed_files.forEach(f => {
+                        tableHtml += `<tr><td style="border:1px solid #ccc; padding:4px 8px;">${f}</td></tr>`;
+                    });
+                    tableHtml += '</table>';
+                    status.innerHTML = tableHtml;
+                } else if (data.error) {
+                    status.textContent = 'Error: ' + data.error;
+                } else {
+                    status.textContent = 'Unknown response from server.';
+                }
+                spinner.style.display = 'none';
+                selectedFiles = [];
+                updateSelectedFilesTable();
+            })
+            .catch(err => {
+                status.textContent = 'Error: ' + err;
+                spinner.style.display = 'none';
+            });
+        }
+    </script>
+</body>
+</html>

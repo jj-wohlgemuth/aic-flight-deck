@@ -1,0 +1,29 @@
+[project]
+name = "aic-dflight-deck"
+version = "0.1.0"
+description = "Python drag & drop audio processing app for AIC API"
+authors = [
+    { name = "Joschka Wohlgemuth <52459869+jj-wohlgemuth@users.noreply.github.com>" }
+]
+
+dependencies = [
+    "Flask~=3.1.1",
+    "aiohttp~=3.12.15",
+    "aiofiles~=24.1.0",
+    "soundfile~=0.13.1",
+    "pywebview~=6.0",
+    "certifi",
+    "pyobjc-core",
+    "pyobjc-framework-Cocoa",
+    "pyobjc-framework-Quartz",
+    "pyobjc-framework-WebKit",
+    "pyobjc-framework-security"
+]
+requires-python = ">=3.13"
+
+[build-system]  
+requires = ["setuptools~=80.9.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["app", "api"]
