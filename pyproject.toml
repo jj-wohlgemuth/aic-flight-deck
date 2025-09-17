@@ -13,11 +13,11 @@ dependencies = [
     "soundfile~=0.13.1",
     "pywebview~=6.0",
     "certifi",
-    "pyobjc-core",
-    "pyobjc-framework-Cocoa",
-    "pyobjc-framework-Quartz",
-    "pyobjc-framework-WebKit",
-    "pyobjc-framework-security"
+    "pyobjc-core; sys_platform == 'darwin'",
+    "pyobjc-framework-Cocoa; sys_platform == 'darwin'",
+    "pyobjc-framework-Quartz; sys_platform == 'darwin'",
+    "pyobjc-framework-WebKit; sys_platform == 'darwin'",
+    "pyobjc-framework-security; sys_platform == 'darwin'"
 ]
 requires-python = ">=3.13"
 

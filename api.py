@@ -153,18 +153,16 @@ def __process_file_parallel(
         if input_file_path.lower().endswith(allowed_extensions):
             output_file_name = f"{os.path.splitext(input_file_path)[0]}_{enhancement_model.value}{os.path.splitext(input_file_path)[1]}".replace('temp_', '')
             output_file_path = os.path.join(output_folder_full_path, output_file_name)
-            if not os.path.exists(output_file_path):
-                __process_file(
-                    input_file_path,
-                    output_file_path,
-                    params=ApiParams(mix_percent=100.0, enhancement_model=enhancement_model),
-                    api_key=api_key
-                )
+            __process_file(
+                input_file_path,
+                output_file_path,
+                params=ApiParams(mix_percent=100.0, enhancement_model=enhancement_model),
+                api_key=api_key
+            )
         else:
             raise ValueError(f"Unsupported file extension for file: {input_file_path}, supported extensions are: {allowed_extensions}")
     except Exception as e:
         print(f"Error processing {input_file_path}: {e}")
-        traceback.print_exc()
         failed_files.append(f"{input_file_path}: {e}")
 
 def __safe_process(args):

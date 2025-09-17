@@ -3,3 +3,4 @@
 .DS_Store
 /.vscode
 /dist
+/aic_dflight_deck.egg-info
