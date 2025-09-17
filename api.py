@@ -1,6 +1,5 @@
 import asyncio
 from pathlib import Path
-from typing import Any, Optional
 from enum import Enum
 import aiofiles
 from aiofiles import os as aiofiles_os
@@ -8,7 +7,6 @@ import aiohttp
 import certifi
 import ssl
 import time
-import os
 import os
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
@@ -19,6 +17,10 @@ import json
 API_URL = "https://api.ai-coustics.io/v2"
 CHUNK_SIZE = 1024
 MAX_WORKERS = 10
+TIMEOUT_FACTOR_S_PER_MB = 60
+TIMEOUT_FACTOR_S_PER_MB_COMPRESSED = TIMEOUT_FACTOR_S_PER_MB * 10
+COMPRESSED_EXTENSIONS = ('.aac', '.opus', '.ogg', '.mp3', '.flac', '.mp4')
+POLLING_INTERVAL_S = 5
 
 lock = Lock()
 
@@ -42,20 +44,20 @@ async def __download_enhanced_media(
     url: str,
     output_file_path: str,
     api_key: str
-) -> int:
+) -> tuple[int, str|None]:
     ssl_context = ssl.create_default_context(cafile=certifi.where())
     async with aiohttp.ClientSession(headers={"X-API-Key": api_key}, connector=aiohttp.TCPConnector(ssl=ssl_context)) as session:
         async with session.get(url) as response:
             if response.status != 200:
                 await response.text()
-                return response.status
+                return response.status, response.reason
 
             await aiofiles_os.makedirs(Path(output_file_path).parent, exist_ok=True)
             async with aiofiles.open(output_file_path, "wb") as f:
                 async for chunk in response.content.iter_chunked(CHUNK_SIZE):
                     await f.write(chunk)
     print(f"Download successfully to: {output_file_path}")
-    return response.status
+    return response.status, response.reason
     
 def __process_file(
     input_file_path: str, output_file_path: str, params: ApiParams, api_key: str
@@ -79,23 +81,29 @@ def __process_file(
         )
     )
 
-    response = 412
-    timeout_seconds = 180
+    file_size_bytes = os.path.getsize(input_file_path)
+    file_size_mb = file_size_bytes / (1024 * 1024)
+    timeout_factor = TIMEOUT_FACTOR_S_PER_MB_COMPRESSED if input_file_path.lower().endswith(COMPRESSED_EXTENSIONS) else TIMEOUT_FACTOR_S_PER_MB
+    timeout_seconds = int(file_size_mb * timeout_factor)
+    response_code = 412
+    reason = f"{url} call failed"
     start_time = time.time()
-    while response == 412 and time.time() - start_time < timeout_seconds:
-        time.sleep(5)
+    while response_code == 412 and time.time() - start_time < timeout_seconds:
+        time.sleep(POLLING_INTERVAL_S)
         url = f"{API_URL}/medias/{uid}/file"
-        response = asyncio.run(
+        response_code, reason = asyncio.run(
             __download_enhanced_media(
                 url,
                 output_file_path,
                 api_key
             )
         )
-    if response == 412:
+    if response_code == 412:
         raise TimeoutError(
-            f"Download timed out after {timeout_seconds} seconds. Please try again."
+            f"Download timed out after {timeout_seconds} seconds (file size: {file_size_mb:.2f} MB). Please try again."
         )
+    elif response_code != 200:
+        raise Exception(f"Failed to download enhanced media: {reason}")
 
 
 async def __upload_and_enhance(
@@ -140,8 +148,10 @@ def __process_file_parallel(
     try:
         if not os.path.exists(output_folder_full_path):
             os.makedirs(output_folder_full_path)
-        if input_file_path.endswith(".wav"):
-            output_file_name = f"{os.path.splitext(input_file_path)[0]}_{enhancement_model.value}.wav".replace('temp_', '')
+        # Process files with extensions for AAC LC, Opus, Vorbis, MPEG Audio, FLAC, PCM
+        allowed_extensions = ('.wav', '.aac', '.opus', '.ogg', '.mp3', '.flac', '.pcm', '.mp4')
+        if input_file_path.lower().endswith(allowed_extensions):
+            output_file_name = f"{os.path.splitext(input_file_path)[0]}_{enhancement_model.value}{os.path.splitext(input_file_path)[1]}".replace('temp_', '')
             output_file_path = os.path.join(output_folder_full_path, output_file_name)
             if not os.path.exists(output_file_path):
                 __process_file(
@@ -150,6 +160,8 @@ def __process_file_parallel(
                     params=ApiParams(mix_percent=100.0, enhancement_model=enhancement_model),
                     api_key=api_key
                 )
+        else:
+            raise ValueError(f"Unsupported file extension for file: {input_file_path}, supported extensions are: {allowed_extensions}")
     except Exception as e:
         print(f"Error processing {input_file_path}: {e}")
         traceback.print_exc()
@@ -159,12 +171,12 @@ def __safe_process(args):
     input_file_path, output_folder_full_path, model_arch, api_key, failed_files = args
     __process_file_parallel(input_file_path, output_folder_full_path, model_arch, api_key, failed_files)
 
-def process_files_parallel(wav_files: list[str], model_arch: EnhancementModel, output_folder_full_path: str, api_key: str) -> list[str]:
+def process_files_parallel(audio_files: list[str], model_arch: EnhancementModel, output_folder_full_path: str, api_key: str) -> list[str]:
     failed_files = []
-    args_list = [(file, output_folder_full_path, model_arch, api_key, failed_files) for file in wav_files]
+    args_list = [(file, output_folder_full_path, model_arch, api_key, failed_files) for file in audio_files]
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         executor.map(__safe_process, args_list)
-    print(f"Processed {len(wav_files) - len(failed_files)} out of {len(wav_files)} files.")
+    print(f"Processed {len(audio_files) - len(failed_files)} out of {len(audio_files)} files.")
     if failed_files:
         print("Failed files:", failed_files)
     return failed_files

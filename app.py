@@ -28,17 +28,16 @@ def upload():
         temp_path = os.path.join(output_folder, 'temp_' + filename)
         file.save(temp_path)
         temp_paths.append(temp_path)
-        output_file_name = f"{os.path.splitext(filename)[0]}_{model_arch}.wav"
+        output_file_name = f"{os.path.splitext(filename)[0]}_{model_arch}{os.path.splitext(filename)[1]}"
         output_file_name = output_file_name.replace('temp_', '')
         output_file_path = os.path.join(output_folder, output_file_name)
         output_files.append(output_file_path)
     failed_files = process_files_parallel(
-        wav_files=temp_paths,
+        audio_files=temp_paths,
         model_arch=EnhancementModel[model_arch],
         output_folder_full_path=output_folder,
         api_key=api_key
     )
-    # Delete temp files
     for temp_path in temp_paths:
         try:
             os.remove(temp_path)
