@@ -14,6 +14,10 @@ This a Python app with a web GUI (Flask) that lets you drag & drop files for upl
 ## User Quickstart
 
 1. If you don't have a API Key yet, you can get one for free at <https://developers.ai-coustics.io/signup>.
+2. Download the latest release for your OS [here](https://github.com/jj-wohlgemuth/aic-flight-deck/releases) and open the executable. **MacOs users** please read the next section.
+3. Enter the API Key or store it as an environment variable named `AI_COUSTICS_API_KEY` so you don't need to enter every time.
+4. Select one or more files, click "PROCESS" and wait until processing is finished.
+5. You'll find the processed files in the output folder you specified.
 
 ### How to open the app on macOS (unsigned)
 
