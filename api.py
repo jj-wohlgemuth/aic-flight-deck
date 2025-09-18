@@ -19,7 +19,8 @@ CHUNK_SIZE = 1024
 MAX_WORKERS = 10
 TIMEOUT_FACTOR_S_PER_MB = 60
 TIMEOUT_FACTOR_S_PER_MB_COMPRESSED = TIMEOUT_FACTOR_S_PER_MB * 10
-COMPRESSED_EXTENSIONS = ('.aac', '.opus', '.ogg', '.mp3', '.flac', '.mp4')
+ALLOWED_EXTENSIONS = ('.wav', '.aac', '.opus', '.ogg', '.mp3', '.flac', '.pcm', '.mp4', '.m4a')
+COMPRESSED_EXTENSIONS = ('.aac', '.opus', '.ogg', '.mp3', '.flac', '.mp4', '.m4a')
 POLLING_INTERVAL_S = 5
 
 lock = Lock()
@@ -149,7 +150,7 @@ def __process_file_parallel(
         if not os.path.exists(output_folder_full_path):
             os.makedirs(output_folder_full_path)
         # Process files with extensions for AAC LC, Opus, Vorbis, MPEG Audio, FLAC, PCM
-        allowed_extensions = ('.wav', '.aac', '.opus', '.ogg', '.mp3', '.flac', '.pcm', '.mp4')
+        allowed_extensions = ALLOWED_EXTENSIONS
         if input_file_path.lower().endswith(allowed_extensions):
             output_file_name = f"{os.path.splitext(input_file_path)[0]}_{enhancement_model.value}{os.path.splitext(input_file_path)[1]}".replace('temp_', '')
             output_file_path = os.path.join(output_folder_full_path, output_file_name)
