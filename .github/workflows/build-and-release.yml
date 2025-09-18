@@ -2,7 +2,7 @@ name: Build and Release App
 on:
   push:
     tags:
-      - '*'
+      - "*"
 jobs:
   create-release:
     runs-on: ubuntu-latest
@@ -23,7 +23,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: "3.13"
       - name: Install dependencies
         run: |
           python -m venv .venv
@@ -36,6 +36,11 @@ jobs:
         run: |
           source .venv/bin/activate
           pyinstaller run_gui.spec
+      - name: Add icon to executable
+        run: |
+          APP_PATH="dist/AIC Flight Deck"
+          Rez lark.rsrc -o "$APP_PATH"
+          SetFile -a C "$APP_PATH"
       - name: Compress artifact
         run: |
           tar -czvf mac-dist.tar.gz -C dist .
@@ -54,7 +59,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: "3.13"
       - name: Install dependencies
         run: |
           python -m venv .venv
@@ -85,7 +90,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: "3.13"
       - name: Install dependencies
         run: |
           python -m venv .venv
