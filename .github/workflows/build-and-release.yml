@@ -68,10 +68,10 @@ jobs:
           pip install .
           pip install pyinstaller
           pip install certifi
-      - name: Build executable
+      - name: Build executable with icon
         run: |
           .venv\Scripts\activate
-          pyinstaller run_gui.spec
+          pyinstaller --icon=lark.ico run_gui.spec
       - name: Compress artifact
         run: |
           tar -czvf windows-dist.tar.gz -C dist .
@@ -91,6 +91,10 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
+      - name: Install GTK dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-gi gir1.2-gtk-3.0
       - name: Install dependencies
         run: |
           python -m venv .venv
@@ -99,10 +103,11 @@ jobs:
           pip install .
           pip install pyinstaller
           pip install certifi
-      - name: Build executable
+            pip install PyGObject
+      - name: Build executable with icon
         run: |
           source .venv/bin/activate
-          pyinstaller run_gui.spec
+          pyinstaller --icon=lark.png run_gui.spec
       - name: Compress artifact
         run: |
           tar -czvf linux-dist.tar.gz -C dist .

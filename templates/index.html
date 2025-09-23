@@ -186,7 +186,7 @@
                                 updateSelectedFilesTable();
                                 processBtn.disabled = false;
                             } else if (statusData.status === 'processing') {
-                                status.textContent = `Processing...`;
+                                status.textContent = `Hold tight. This may take some time.`;
                                 if (retries < maxRetries) {
                                     retries++;
                                     setTimeout(pollStatus, retryDelay);
