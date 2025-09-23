@@ -28,6 +28,7 @@ def upload():
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
     model_arch = request.form.get('enhancementModel', 'LARK_V2')
+    mix_percent = float(request.form.get('mixPercent', '100'))
     temp_paths = []
     output_files = []
     for file in files:
@@ -47,6 +48,7 @@ def upload():
         failed_files = process_files_parallel(
             audio_files=temp_paths,
             model_arch=EnhancementModel[model_arch],
+            mix_percent=mix_percent,
             output_folder_full_path=output_folder,
             api_key=api_key
         )

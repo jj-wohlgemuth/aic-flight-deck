@@ -10,7 +10,6 @@ import time
 import os
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
-import traceback
 import json
 
 
@@ -143,6 +142,7 @@ def __process_file_parallel(
     input_file_path: str,
     output_folder_full_path: str,
     enhancement_model: EnhancementModel,
+    mix_percent: float,
     api_key: str,
     failed_files: list[str]
 ):
@@ -152,12 +152,12 @@ def __process_file_parallel(
         # Process files with extensions for AAC LC, Opus, Vorbis, MPEG Audio, FLAC, PCM
         allowed_extensions = ALLOWED_EXTENSIONS
         if input_file_path.lower().endswith(allowed_extensions):
-            output_file_name = f"{os.path.splitext(input_file_path)[0]}_{enhancement_model.value}{os.path.splitext(input_file_path)[1]}".replace('temp_', '')
+            output_file_name = f"{os.path.splitext(input_file_path)[0]}_{enhancement_model.value}_{mix_percent:.0f}p{os.path.splitext(input_file_path)[1]}".replace('temp_', '')
             output_file_path = os.path.join(output_folder_full_path, output_file_name)
             __process_file(
                 input_file_path,
                 output_file_path,
-                params=ApiParams(mix_percent=100.0, enhancement_model=enhancement_model),
+                params=ApiParams(mix_percent=mix_percent, enhancement_model=enhancement_model),
                 api_key=api_key
             )
         else:
@@ -167,12 +167,12 @@ def __process_file_parallel(
         failed_files.append(f"{input_file_path}: {e}")
 
 def __safe_process(args):
-    input_file_path, output_folder_full_path, model_arch, api_key, failed_files = args
-    __process_file_parallel(input_file_path, output_folder_full_path, model_arch, api_key, failed_files)
+    input_file_path, output_folder_full_path, model_arch, mix_percent, api_key, failed_files = args
+    __process_file_parallel(input_file_path, output_folder_full_path, model_arch, mix_percent, api_key, failed_files)
 
-def process_files_parallel(audio_files: list[str], model_arch: EnhancementModel, output_folder_full_path: str, api_key: str) -> list[str]:
+def process_files_parallel(audio_files: list[str], model_arch: EnhancementModel, mix_percent: float, output_folder_full_path: str, api_key: str) -> list[str]:
     failed_files = []
-    args_list = [(file, output_folder_full_path, model_arch, api_key, failed_files) for file in audio_files]
+    args_list = [(file, output_folder_full_path, model_arch, mix_percent, api_key, failed_files) for file in audio_files]
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         executor.map(__safe_process, args_list)
     print(f"Processed {len(audio_files) - len(failed_files)} out of {len(audio_files)} files.")

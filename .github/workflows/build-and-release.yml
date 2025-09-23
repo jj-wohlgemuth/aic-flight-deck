@@ -68,10 +68,10 @@ jobs:
           pip install .
           pip install pyinstaller
           pip install certifi
-      - name: Build executable with icon
+      - name: Build executable
         run: |
           .venv\Scripts\activate
-          pyinstaller --icon=lark.ico run_gui.spec
+          pyinstaller run_gui.spec
       - name: Compress artifact
         run: |
           tar -czvf windows-dist.tar.gz -C dist .
@@ -104,10 +104,10 @@ jobs:
           pip install pyinstaller
           pip install certifi
             pip install PyGObject
-      - name: Build executable with icon
+      - name: Build executable
         run: |
           source .venv/bin/activate
-          pyinstaller --icon=lark.png run_gui.spec
+          pyinstaller run_gui.spec
       - name: Compress artifact
         run: |
           tar -czvf linux-dist.tar.gz -C dist .

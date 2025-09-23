@@ -64,6 +64,9 @@
                     <option value="LARK_V2">LARK_V2</option>
                     <option value="FINCH">FINCH</option>
                 </select><br><br>
+                <label for="mixPercent">Mix:</label>
+                <input type="range" id="mixPercent" name="mixPercent" min="0" max="100" value="100" style="width:200px;">
+                <span id="mixPercentValue">100%</span><br><br>
             </div>
             <div id="drop-area">
                 <h3>Drop your files here</h3>
@@ -85,145 +88,155 @@
         }
     </style>
     <script>
-        const dropArea = document.getElementById('drop-area');
-        const fileElem = document.getElementById('fileElem');
-        const fileSelect = document.getElementById('fileSelect');
-
-        fileSelect.onclick = () => fileElem.click();
-
-        let selectedFiles = [];
-
-        function updateSelectedFilesTable() {
-            const container = document.getElementById('selected-files');
-            if (selectedFiles.length === 0) {
-                container.innerHTML = '';
-                return;
-            }
-            let tableHtml = '<table style="margin:0 auto; border-collapse:collapse;"><tr><th>Selected Files</th></tr>';
-            selectedFiles.forEach(f => {
-                tableHtml += `<tr><td style="border:1px solid #ccc; padding:4px 8px;">${f.name}</td></tr>`;
-            });
-            tableHtml += '</table>';
-            container.innerHTML = tableHtml;
-        }
-
-        dropArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropArea.style.background = '#eee';
-        });
-        dropArea.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            dropArea.style.background = '';
-        });
-        dropArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropArea.style.background = '';
-            selectedFiles = Array.from(e.dataTransfer.files);
-            updateSelectedFilesTable();
-        });
-        fileElem.addEventListener('change', (e) => {
-            selectedFiles = Array.from(e.target.files);
-            updateSelectedFilesTable();
-        });
-
-        document.getElementById('processBtn').onclick = function() {
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropArea = document.getElementById('drop-area');
+            const fileElem = document.getElementById('fileElem');
+            const fileSelect = document.getElementById('fileSelect');
+            const mixPercent = document.getElementById('mixPercent');
+            const mixPercentValue = document.getElementById('mixPercentValue');
             const processBtn = document.getElementById('processBtn');
-            if (selectedFiles.length === 0 || processBtn.disabled) {
-                alert('Please select or drop files first.');
-                return;
-            }
-            processBtn.disabled = true;
-            const spinner = document.getElementById('spinner');
-            const status = document.getElementById('status');
-            spinner.style.display = 'block';
-            status.textContent = 'Uploading, processing and downloading data...';
-            const formData = new FormData();
-            for (let i = 0; i < selectedFiles.length; i++) {
-                formData.append('files[]', selectedFiles[i]);
-            }
-            // Add form fields
-            formData.append('apiKey', document.getElementById('apiKey').value);
-            formData.append('outputFolder', document.getElementById('outputFolder').value);
-            formData.append('enhancementModel', document.getElementById('enhancementModel').value);
 
-            fetch('/upload', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.job_id) {
-                    let retries = 0;
-                    const maxRetries = 5120;
-                    const retryDelay = 10000; // 10 seconds
-                    function pollStatus() {
-                        fetch(`/status?job_id=${data.job_id}`)
-                        .then(response => response.json())
-                        .then(statusData => {
-                            if (statusData.status === 'done') {
-                                let tableHtml = '';
-                                if (statusData.files && statusData.files.length > 0 && (!statusData.failed_files || statusData.failed_files.length === 0)) {
-                                    tableHtml += '<table style="margin:0 auto; border-collapse:collapse;"><tr><th>Processed Files</th></tr>';
-                                    statusData.files.forEach(f => {
-                                        tableHtml += `<tr><td style="border:1px solid #ccc; padding:4px 8px;">${f}</td></tr>`;
-                                    });
-                                    tableHtml += '</table>';
-                                }
-                                if (statusData.failed_files && statusData.failed_files.length > 0) {
-                                    tableHtml += '<table style="margin:0 auto; border-collapse:collapse;"><tr><th>Failed Files</th></tr>';
-                                    statusData.failed_files.forEach(f => {
-                                        tableHtml += `<tr><td style="border:1px solid #ccc; padding:4px 8px;">${f}</td></tr>`;
-                                    });
-                                    tableHtml += '</table>';
-                                }
-                                if (tableHtml) {
-                                    status.innerHTML = tableHtml;
-                                } else {
-                                    status.textContent = 'Unknown response from server.';
-                                }
-                                spinner.style.display = 'none';
-                                selectedFiles = [];
-                                updateSelectedFilesTable();
-                                processBtn.disabled = false;
-                            } else if (statusData.status === 'processing') {
-                                status.textContent = `Hold tight. This may take some time.`;
-                                if (retries < maxRetries) {
-                                    retries++;
-                                    setTimeout(pollStatus, retryDelay);
-                                } else {
-                                    status.textContent = 'Error: Processing timed out.';
+            fileSelect.onclick = () => fileElem.click();
+
+            let selectedFiles = [];
+
+            function updateSelectedFilesTable() {
+                const container = document.getElementById('selected-files');
+                if (selectedFiles.length === 0) {
+                    container.innerHTML = '';
+                    return;
+                }
+                let tableHtml = '<table style="margin:0 auto; border-collapse:collapse;"><tr><th>Selected Files</th></tr>';
+                selectedFiles.forEach(f => {
+                    tableHtml += `<tr><td style="border:1px solid #ccc; padding:4px 8px;">${f.name}</td></tr>`;
+                });
+                tableHtml += '</table>';
+                container.innerHTML = tableHtml;
+            }
+
+            dropArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropArea.style.background = '#eee';
+            });
+            dropArea.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                dropArea.style.background = '';
+            });
+            dropArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropArea.style.background = '';
+                selectedFiles = Array.from(e.dataTransfer.files);
+                updateSelectedFilesTable();
+            });
+            fileElem.addEventListener('change', (e) => {
+                selectedFiles = Array.from(e.target.files);
+                updateSelectedFilesTable();
+            });
+
+            // Update slider value display
+            mixPercent.addEventListener('input', function() {
+                mixPercentValue.textContent = this.value + '%';
+            });
+
+            processBtn.onclick = function() {
+                if (selectedFiles.length === 0 || processBtn.disabled) {
+                    alert('Please select or drop files first.');
+                    return;
+                }
+                processBtn.disabled = true;
+                const spinner = document.getElementById('spinner');
+                const status = document.getElementById('status');
+                spinner.style.display = 'block';
+                status.textContent = 'Uploading, processing and downloading data...';
+                const formData = new FormData();
+                for (let i = 0; i < selectedFiles.length; i++) {
+                    formData.append('files[]', selectedFiles[i]);
+                }
+                // Add form fields
+                formData.append('apiKey', document.getElementById('apiKey').value);
+                formData.append('outputFolder', document.getElementById('outputFolder').value);
+                formData.append('enhancementModel', document.getElementById('enhancementModel').value);
+                formData.append('mixPercent', document.getElementById('mixPercent').value);
+
+                fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.job_id) {
+                        let retries = 0;
+                        const maxRetries = 5120;
+                        const retryDelay = 10000; // 10 seconds
+                        function pollStatus() {
+                            fetch(`/status?job_id=${data.job_id}`)
+                            .then(response => response.json())
+                            .then(statusData => {
+                                if (statusData.status === 'done') {
+                                    let tableHtml = '';
+                                    if (statusData.files && statusData.files.length > 0 && (!statusData.failed_files || statusData.failed_files.length === 0)) {
+                                        tableHtml += '<table style="margin:0 auto; border-collapse:collapse;"><tr><th>Processed Files</th></tr>';
+                                        statusData.files.forEach(f => {
+                                            tableHtml += `<tr><td style="border:1px solid #ccc; padding:4px 8px;">${f}</td></tr>`;
+                                        });
+                                        tableHtml += '</table>';
+                                    }
+                                    if (statusData.failed_files && statusData.failed_files.length > 0) {
+                                        tableHtml += '<table style="margin:0 auto; border-collapse:collapse;"><tr><th>Failed Files</th></tr>';
+                                        statusData.failed_files.forEach(f => {
+                                            tableHtml += `<tr><td style="border:1px solid #ccc; padding:4px 8px;">${f}</td></tr>`;
+                                        });
+                                        tableHtml += '</table>';
+                                    }
+                                    if (tableHtml) {
+                                        status.innerHTML = tableHtml;
+                                    } else {
+                                        status.textContent = 'Unknown response from server.';
+                                    }
+                                    spinner.style.display = 'none';
+                                    selectedFiles = [];
+                                    updateSelectedFilesTable();
+                                    processBtn.disabled = false;
+                                } else if (statusData.status === 'processing') {
+                                    status.textContent = `Hold tight. This may take some time.`;
+                                    if (retries < maxRetries) {
+                                        retries++;
+                                        setTimeout(pollStatus, retryDelay);
+                                    } else {
+                                        status.textContent = 'Error: Processing timed out.';
+                                        spinner.style.display = 'none';
+                                        processBtn.disabled = false;
+                                    }
+                                } else if (statusData.error) {
+                                    status.textContent = 'Error: ' + statusData.error;
                                     spinner.style.display = 'none';
                                     processBtn.disabled = false;
                                 }
-                            } else if (statusData.error) {
-                                status.textContent = 'Error: ' + statusData.error;
+                            })
+                            .catch(err => {
+                                status.textContent = 'Error: ' + err;
                                 spinner.style.display = 'none';
                                 processBtn.disabled = false;
-                            }
-                        })
-                        .catch(err => {
-                            status.textContent = 'Error: ' + err;
-                            spinner.style.display = 'none';
-                            processBtn.disabled = false;
-                        });
+                            });
+                        }
+                        pollStatus();
+                    } else if (data.error) {
+                        status.textContent = 'Error: ' + data.error;
+                        spinner.style.display = 'none';
+                        processBtn.disabled = false;
+                    } else {
+                        status.textContent = 'Unknown response from server.';
+                        spinner.style.display = 'none';
+                        processBtn.disabled = false;
                     }
-                    pollStatus();
-                } else if (data.error) {
-                    status.textContent = 'Error: ' + data.error;
+                })
+                .catch(err => {
+                    status.textContent = 'Error: ' + err;
                     spinner.style.display = 'none';
                     processBtn.disabled = false;
-                } else {
-                    status.textContent = 'Unknown response from server.';
-                    spinner.style.display = 'none';
-                    processBtn.disabled = false;
-                }
-            })
-            .catch(err => {
-                status.textContent = 'Error: ' + err;
-                spinner.style.display = 'none';
-                processBtn.disabled = false;
-            });
-        }
+                });
+            }
+        });
     </script>
 </body>
 </html>
