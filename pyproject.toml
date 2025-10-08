@@ -11,7 +11,7 @@ dependencies = [
     "aiohttp~=3.12.15",
     "aiofiles~=24.1.0",
     "soundfile~=0.13.1",
-    "samplerate~=0.2.1",
+    "resampy~=0.4.3",
     "pywebview~=6.0",
     "certifi",
     "pyobjc-core; sys_platform == 'darwin'",
