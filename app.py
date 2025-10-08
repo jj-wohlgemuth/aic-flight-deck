@@ -3,11 +3,13 @@ import uuid
 import threading
 import os
 from api import process_files_parallel, EnhancementModel
-
+import soundfile as sf
+import resampy
+import numpy as np
 
 app = Flask(__name__)
-UPLOAD_FOLDER = "uploads"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+DOWNLOADS_FOLDER = os.path.join(os.path.expanduser("~"), "Downloads")
+AIC_API_FS_HZ = 32000
 
 # In-memory job store: {job_id: {'status': str, 'files': list, 'failed_files': list}}
 job_store = {}
@@ -17,7 +19,7 @@ job_store = {}
 def index():
     import os
 
-    default_download_folder = os.path.join(os.path.expanduser("~"), "Downloads")
+    default_download_folder = DOWNLOADS_FOLDER
     default_api_key = os.environ.get("AI_COUSTICS_API_KEY", "")
     return render_template(
         "index.html",
@@ -30,7 +32,7 @@ def index():
 def upload():
     files = request.files.getlist("files[]")
     api_key = request.form.get("apiKey", "")
-    output_folder = request.form.get("outputFolder", UPLOAD_FOLDER)
+    output_folder = request.form.get("outputFolder", DOWNLOADS_FOLDER)
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
     model_arch = request.form.get("enhancementModel", "LARK_V2")
@@ -40,7 +42,13 @@ def upload():
     for file in files:
         filename = file.filename if file.filename is not None else "unnamed"
         temp_path = os.path.join(output_folder, "temp_" + filename)
-        file.save(temp_path)
+        if file.content_type is not None and "audio" in file.content_type:
+            audio_pcm, fs_hz = sf.read(file)
+            audio_pcm = np.mean(audio_pcm, axis=1) if audio_pcm.ndim > 1 else audio_pcm
+            audio_pcm_resampled = resampy.resample(audio_pcm, fs_hz, AIC_API_FS_HZ)
+            sf.write(temp_path, audio_pcm_resampled, AIC_API_FS_HZ)
+        else:
+            file.save(temp_path)
         temp_paths.append(temp_path)
         output_file_name = f"{os.path.splitext(filename)[0]}_{model_arch}{os.path.splitext(filename)[1]}"
         output_file_name = output_file_name.replace("temp_", "")
