@@ -12,8 +12,9 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 import json
 
-
 API_URL = "https://api.ai-coustics.io/v2"
+if os.environ.get("FLIGHT_DECK_USE_STAGING", "").lower() in ("1", "true"):
+    API_URL = "https://api.stg.ai-coustics.io/v2"
 CHUNK_SIZE = 1024
 MAX_WORKERS = 2
 TIMEOUT_FACTOR_S_PER_MB = 120
